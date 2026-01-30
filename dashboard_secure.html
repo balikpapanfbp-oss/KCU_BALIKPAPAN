@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard KCU Balikpapan - Secure</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* Login Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-login:hover {
+            background: #5568d3;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .upload-section.locked {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .upload-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-badge {
+            background: #4caf50;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+
+        .login-required {
+            background: #ff9800;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+
+        .login-required:hover {
+            background: #f57c00;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #5568d3;
+        }
+
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #4facfe;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .upload-btn:hover {
+            background: #5568d3;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .filter-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* Comparison Section */
+        .comparison-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .comparison-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            text-align: center;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .comparison-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .comparison-card h3 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .comparison-values {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 15px 0;
+        }
+
+        .year-value {
+            text-align: center;
+        }
+
+        .year-label {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .year-amount {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .comparison-arrow {
+            font-size: 2em;
+        }
+
+        .growth-indicator {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .growth-indicator.positive {
+            color: #4caf50;
+        }
+
+        .growth-indicator.negative {
+            color: #f44336;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        /* Chart Grid */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .chart-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            text-align: center;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        .table-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            padding: 20px 0;
+            margin-top: 30px;
+            opacity: 0.8;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>🔐 Login Admin</h2>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="adminPassword" placeholder="Masukkan password admin">
+            </div>
+            <button class="btn-login" onclick="checkLogin()">Login</button>
+            <p style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9em;">
+                Password default: <code>admin123</code><br>
+                <small>(Ganti di source code)</small>
+            </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Dashboard KCU Balikpapan</h1>
+            <p>Analisis Data Transaksi BSU RB dengan Filter & Perbandingan Tahun</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section" id="uploadSection">
+            <h2>
+                📤 Upload Data Master
+                <span id="loginBadge" class="login-required" onclick="showLoginModal()">🔒 Login untuk Upload</span>
+            </h2>
+            <div id="alertBox" class="alert"></div>
+            <div class="upload-area" id="uploadArea" onclick="handleUploadClick()">
+                <div class="upload-icon">📁</div>
+                <h3>Klik atau Drag & Drop file CSV di sini</h3>
+                <p style="color: #666; margin-top: 10px;">Format: CSV dengan kolom KCU, KC, kcp, BSU RB, Channel, Touch Point, total_trx, Tanggal</p>
+                <input type="file" id="fileInput" class="file-input" accept=".csv">
+                <button class="upload-btn" onclick="event.stopPropagation(); handleUploadClick()">Pilih File</button>
+            </div>
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">Memproses file...</p>
+            </div>
+            <div id="fileInfo" class="file-info">
+                <strong>File dipilih:</strong> <span id="fileName"></span><br>
+                <strong>Ukuran:</strong> <span id="fileSize"></span><br>
+                <strong>Total Data:</strong> <span id="totalRows"></span> baris<br>
+                <strong>Status:</strong> <span id="parseStatus" style="color: green;">✓ Berhasil dimuat</span>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h2>🔍 Filter Data</h2>
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>Tanggal Mulai</label>
+                    <input type="date" id="startDate" value="2025-01-01">
+                </div>
+                <div class="filter-group">
+                    <label>Tanggal Akhir</label>
+                    <input type="date" id="endDate" value="2026-01-30">
+                </div>
+                <div class="filter-group">
+                    <label>KC (Kantor Cabang)</label>
+                    <select id="kcFilter">
+                        <option value="all">Semua KC</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Channel</label>
+                    <select id="channelFilter">
+                        <option value="all">Semua Channel</option>
+                        <option value="Loket">Loket</option>
+                        <option value="Oranger">Oranger</option>
+                        <option value="Agen Pos">Agen Pos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Touch Point</label>
+                    <select id="touchpointFilter">
+                        <option value="all">Semua Touch Point</option>
+                        <option value="Direct Engagement">Direct Engagement</option>
+                        <option value="Marketplace">Marketplace</option>
+                        <option value="POSAJA">POSAJA</option>
+                    </select>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="applyFilters()">Terapkan Filter</button>
+                <button class="btn btn-secondary" onclick="resetFilters()">Reset Filter</button>
+            </div>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="comparison-section">
+            <h2>📈 Perbandingan Tahun 2025 vs 2026</h2>
+            <div class="comparison-grid">
+                <div class="comparison-card">
+                    <h3>Total Transaksi</h3>
+                    <div class="comparison-values">
+                        <div class="year-value">
+                            <div class="year-label">2025</div>
+                            <div class="year-amount" id="trx2025">-</div>
+                        </div>
+                        <div class="comparison-arrow">→</div>
+                        <div class="year-value">
+                            <div class="year-label">2026</div>
+                            <div class="year-amount" id="trx2026">-</div>
+                        </div>
+                    </div>
+                    <div class="growth-indicator" id="trxGrowth">Upload data untuk melihat</div>
+                </div>
+
+                <div class="comparison-card">
+                    <h3>Total Nilai BSU RB</h3>
+                    <div class="comparison-values">
+                        <div class="year-value">
+                            <div class="year-label">2025</div>
+                            <div class="year-amount" id="value2025">-</div>
+                        </div>
+                        <div class="comparison-arrow">→</div>
+                        <div class="year-value">
+                            <div class="year-label">2026</div>
+                            <div class="year-amount" id="value2026">-</div>
+                        </div>
+                    </div>
+                    <div class="growth-indicator" id="valueGrowth">Upload data untuk melihat</div>
+                </div>
+
+                <div class="comparison-card">
+                    <h3>Rata-rata per Transaksi</h3>
+                    <div class="comparison-values">
+                        <div class="year-value">
+                            <div class="year-label">2025</div>
+                            <div class="year-amount" id="avg2025">-</div>
+                        </div>
+                        <div class="comparison-arrow">→</div>
+                        <div class="year-value">
+                            <div class="year-label">2026</div>
+                            <div class="year-amount" id="avg2026">-</div>
+                        </div>
+                    </div>
+                    <div class="growth-indicator" id="avgGrowth">Upload data untuk melihat</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Transaksi</h3>
+                <div class="value" id="totalTrx">-</div>
+                <div class="label">Transaksi tercatat</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Total Nilai BSU RB</h3>
+                <div class="value" id="totalValue">-</div>
+                <div class="label">Rupiah</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Rata-rata per Transaksi</h3>
+                <div class="value" id="avgTrx">-</div>
+                <div class="label">Per transaksi</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Jumlah KC Aktif</h3>
+                <div class="value" id="totalKC">-</div>
+                <div class="label">Kantor cabang</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h2>Transaksi per Channel</h2>
+                <div class="chart-container">
+                    <canvas id="channelChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h2>Nilai BSU RB per Channel</h2>
+                <div class="chart-container">
+                    <canvas id="channelValueChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card" style="margin-bottom: 20px;">
+            <h2>Tren Transaksi Bulanan</h2>
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h2>Top 10 KC</h2>
+                <div class="chart-container">
+                    <canvas id="kcChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h2>Distribusi Touch Point</h2>
+                <div class="chart-container">
+                    <canvas id="touchpointChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <h2>Top 10 KCP berdasarkan Total Transaksi</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ranking</th>
+                        <th>KCP</th>
+                        <th>KC</th>
+                        <th>Total Transaksi</th>
+                        <th>Total Nilai BSU RB</th>
+                        <th>Rata-rata</th>
+                    </tr>
+                </thead>
+                <tbody id="kcpTableBody">
+                    <tr><td colspan="6" style="text-align: center; padding: 30px;">📁 Silakan upload file CSV untuk menampilkan data</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>Dashboard KCU Balikpapan | Secure Admin Upload</p>
+        </div>
+    </div>
+
+    <script>
+        // KONFIGURASI PASSWORD - GANTI INI!
+        const ADMIN_PASSWORD = 'admin123'; // GANTI dengan password Anda
+
+        // Global variables
+        let rawData = [];
+        let filteredData = [];
+        let charts = {};
+        let isAdmin = false;
+
+        // Chart colors
+        const chartColors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#fee140'];
+
+        // Check if admin is already logged in (using sessionStorage)
+        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+            isAdmin = true;
+            updateAdminUI();
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.add('show');
+        }
+
+        function checkLogin() {
+            const password = document.getElementById('adminPassword').value;
+
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                sessionStorage.setItem('adminLoggedIn', 'true');
+                document.getElementById('loginModal').classList.remove('show');
+                document.getElementById('adminPassword').value = '';
+                updateAdminUI();
+                showAlert('success', '✓ Login berhasil! Anda sekarang bisa upload file.');
+            } else {
+                showAlert('error', '❌ Password salah!');
+                document.getElementById('adminPassword').value = '';
+            }
+        }
+
+        function updateAdminUI() {
+            const uploadSection = document.getElementById('uploadSection');
+            const loginBadge = document.getElementById('loginBadge');
+
+            if (isAdmin) {
+                uploadSection.classList.remove('locked');
+                loginBadge.className = 'admin-badge';
+                loginBadge.textContent = '✓ Admin Mode';
+                loginBadge.onclick = null;
+            } else {
+                uploadSection.classList.add('locked');
+                loginBadge.className = 'login-required';
+                loginBadge.textContent = '🔒 Login untuk Upload';
+                loginBadge.onclick = showLoginModal;
+            }
+        }
+
+        function handleUploadClick() {
+            if (!isAdmin) {
+                showLoginModal();
+                return;
+            }
+            document.getElementById('fileInput').click();
+        }
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                if (isAdmin) uploadArea.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('dragover');
+            }, false);
+        });
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFileSelect, false);
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('loginModal');
+            if (event.target === modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        // Allow Enter key to login
+        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkLogin();
+            }
+        });
+
+        function handleDrop(e) {
+            if (!isAdmin) {
+                showLoginModal();
+                return;
+            }
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            if (!isAdmin) {
+                showLoginModal();
+                return;
+            }
+            const files = e.target.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.endsWith('.csv')) {
+                    document.getElementById('loadingIndicator').classList.add('show');
+                    parseCSV(file);
+                } else {
+                    showAlert('error', 'Hanya file CSV yang diperbolehkan!');
+                }
+            }
+        }
+
+        function parseCSV(file) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    console.log('Parse complete:', results);
+
+                    if (results.errors.length > 0) {
+                        console.error('Parse errors:', results.errors);
+                        showAlert('error', 'Ada error saat parsing CSV: ' + results.errors[0].message);
+                        document.getElementById('loadingIndicator').classList.remove('show');
+                        return;
+                    }
+
+                    rawData = results.data;
+
+                    if (rawData.length === 0) {
+                        showAlert('error', 'File CSV kosong!');
+                        document.getElementById('loadingIndicator').classList.remove('show');
+                        return;
+                    }
+
+                    const requiredColumns = ['KCU', 'KC ', 'kcp', 'BSU RB', 'Channel', 'Touch Point', 'total_trx', 'Tanggal'];
+                    const firstRow = rawData[0];
+                    const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+
+                    if (missingColumns.length > 0) {
+                        showAlert('error', 'Kolom tidak lengkap! Yang hilang: ' + missingColumns.join(', '));
+                        console.log('Available columns:', Object.keys(firstRow));
+                        document.getElementById('loadingIndicator').classList.remove('show');
+                        return;
+                    }
+
+                    document.getElementById('loadingIndicator').classList.remove('show');
+                    document.getElementById('fileName').textContent = file.name;
+                    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                    document.getElementById('totalRows').textContent = rawData.length.toLocaleString('id-ID');
+                    document.getElementById('fileInfo').classList.add('show');
+
+                    showAlert('success', `✓ File berhasil diupload! ${rawData.length.toLocaleString('id-ID')} data berhasil dimuat.`);
+
+                    console.log('Sample data:', rawData.slice(0, 3));
+
+                    populateFilters();
+                    applyFilters();
+                },
+                error: function(error) {
+                    console.error('Parse error:', error);
+                    showAlert('error', 'Gagal membaca file: ' + error.message);
+                    document.getElementById('loadingIndicator').classList.remove('show');
+                }
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showAlert(type, message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert alert-${type} show`;
+            alertBox.textContent = message;
+
+            setTimeout(() => {
+                alertBox.classList.remove('show');
+            }, 5000);
+        }
+
+        function populateFilters() {
+            const kcSet = new Set();
+            rawData.forEach(row => {
+                if (row['KC ']) kcSet.add(row['KC '].trim());
+            });
+
+            const kcFilter = document.getElementById('kcFilter');
+            kcFilter.innerHTML = '<option value="all">Semua KC</option>';
+            Array.from(kcSet).sort().forEach(kc => {
+                const option = document.createElement('option');
+                option.value = kc;
+                option.textContent = kc;
+                kcFilter.appendChild(option);
+            });
+        }
+
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                const month = parseInt(parts[0]);
+                const day = parseInt(parts[1]);
+                const year = parseInt(parts[2]);
+                return new Date(year, month - 1, day);
+            }
+            return new Date(dateStr);
+        }
+
+        function applyFilters() {
+            if (rawData.length === 0) {
+                showAlert('error', 'Silakan upload data terlebih dahulu!');
+                return;
+            }
+
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            endDate.setHours(23, 59, 59, 999);
+
+            const kc = document.getElementById('kcFilter').value;
+            const channel = document.getElementById('channelFilter').value;
+            const touchpoint = document.getElementById('touchpointFilter').value;
+
+            filteredData = rawData.filter(row => {
+                const rowDate = parseDate(row.Tanggal);
+
+                if (!rowDate) return false;
+                if (rowDate < startDate || rowDate > endDate) return false;
+                if (kc !== 'all' && row['KC '] && row['KC '].trim() !== kc) return false;
+                if (channel !== 'all' && row.Channel !== channel) return false;
+                if (touchpoint !== 'all' && row['Touch Point'] !== touchpoint) return false;
+
+                return true;
+            });
+
+            if (filteredData.length === 0) {
+                showAlert('error', 'Tidak ada data yang sesuai dengan filter!');
+                return;
+            }
+
+            showAlert('success', `✓ Filter diterapkan! ${filteredData.length.toLocaleString('id-ID')} data ditampilkan.`);
+
+            updateDashboard();
+        }
+
+        function resetFilters() {
+            document.getElementById('startDate').value = '2025-01-01';
+            document.getElementById('endDate').value = '2026-01-30';
+            document.getElementById('kcFilter').value = 'all';
+            document.getElementById('channelFilter').value = 'all';
+            document.getElementById('touchpointFilter').value = 'all';
+
+            if (rawData.length > 0) {
+                applyFilters();
+            }
+        }
+
+        function updateDashboard() {
+            updateStats();
+            updateComparison();
+            updateCharts();
+            updateTable();
+        }
+
+        function updateStats() {
+            const totalTrx = filteredData.reduce((sum, row) => sum + parseInt(row.total_trx || 0), 0);
+            const totalValue = filteredData.reduce((sum, row) => sum + parseInt(row['BSU RB'] || 0), 0);
+            const avgTrx = totalTrx > 0 ? totalValue / totalTrx : 0;
+
+            const kcSet = new Set(filteredData.map(row => row['KC '] ? row['KC '].trim() : '').filter(k => k));
+
+            document.getElementById('totalTrx').textContent = totalTrx.toLocaleString('id-ID');
+            document.getElementById('totalValue').textContent = 'Rp ' + (totalValue / 1000000000).toFixed(2) + ' M';
+            document.getElementById('avgTrx').textContent = 'Rp ' + Math.round(avgTrx).toLocaleString('id-ID');
+            document.getElementById('totalKC').textContent = kcSet.size;
+        }
+
+        function updateComparison() {
+            const data2025 = filteredData.filter(row => {
+                const date = parseDate(row.Tanggal);
+                return date && date.getFullYear() === 2025;
+            });
+
+            const data2026 = filteredData.filter(row => {
+                const date = parseDate(row.Tanggal);
+                return date && date.getFullYear() === 2026;
+            });
+
+            const trx2025 = data2025.reduce((sum, row) => sum + parseInt(row.total_trx || 0), 0);
+            const trx2026 = data2026.reduce((sum, row) => sum + parseInt(row.total_trx || 0), 0);
+            const value2025 = data2025.reduce((sum, row) => sum + parseInt(row['BSU RB'] || 0), 0);
+            const value2026 = data2026.reduce((sum, row) => sum + parseInt(row['BSU RB'] || 0), 0);
+
+            const avg2025 = trx2025 > 0 ? value2025 / trx2025 : 0;
+            const avg2026 = trx2026 > 0 ? value2026 / trx2026 : 0;
+
+            document.getElementById('trx2025').textContent = trx2025.toLocaleString('id-ID');
+            document.getElementById('trx2026').textContent = trx2026.toLocaleString('id-ID');
+            document.getElementById('value2025').textContent = (value2025 / 1000000000).toFixed(1) + 'M';
+            document.getElementById('value2026').textContent = (value2026 / 1000000000).toFixed(1) + 'M';
+            document.getElementById('avg2025').textContent = Math.round(avg2025 / 1000).toLocaleString('id-ID') + 'K';
+            document.getElementById('avg2026').textContent = Math.round(avg2026 / 1000).toLocaleString('id-ID') + 'K';
+
+            const trxGrowth = trx2025 > 0 ? ((trx2026 - trx2025) / trx2025 * 100) : 0;
+            const valueGrowth = value2025 > 0 ? ((value2026 - value2025) / value2025 * 100) : 0;
+            const avgGrowth = avg2025 > 0 ? ((avg2026 - avg2025) / avg2025 * 100) : 0;
+
+            updateGrowthIndicator('trxGrowth', trxGrowth);
+            updateGrowthIndicator('valueGrowth', valueGrowth);
+            updateGrowthIndicator('avgGrowth', avgGrowth);
+        }
+
+        function updateGrowthIndicator(elementId, growth) {
+            const element = document.getElementById(elementId);
+            const arrow = growth >= 0 ? '↑' : '↓';
+            const className = growth >= 0 ? 'positive' : 'negative';
+            element.textContent = `${arrow} ${Math.abs(growth).toFixed(1)}%`;
+            element.className = `growth-indicator ${className}`;
+        }
+
+        function updateCharts() {
+            updateChannelCharts();
+            updateTrendChart();
+            updateKCChart();
+            updateTouchpointChart();
+        }
+
+        function updateChannelCharts() {
+            const channelData = {};
+
+            filteredData.forEach(row => {
+                const channel = row.Channel || 'Unknown';
+                if (!channelData[channel]) {
+                    channelData[channel] = { trx: 0, value: 0 };
+                }
+                channelData[channel].trx += parseInt(row.total_trx || 0);
+                channelData[channel].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            const labels = Object.keys(channelData);
+            const trxValues = labels.map(l => channelData[l].trx);
+            const valueData = labels.map(l => channelData[l].value / 1000000000);
+
+            if (charts.channelChart) charts.channelChart.destroy();
+            if (charts.channelValueChart) charts.channelValueChart.destroy();
+
+            charts.channelChart = new Chart(document.getElementById('channelChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: trxValues,
+                        backgroundColor: chartColors.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            charts.channelValueChart = new Chart(document.getElementById('channelValueChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nilai BSU RB (Miliar Rp)',
+                        data: valueData,
+                        backgroundColor: chartColors[0],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + value.toFixed(1) + ' M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTrendChart() {
+            const monthlyData = {};
+
+            filteredData.forEach(row => {
+                const date = parseDate(row.Tanggal);
+                if (!date) return;
+
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = { trx: 0, value: 0 };
+                }
+                monthlyData[monthKey].trx += parseInt(row.total_trx || 0);
+                monthlyData[monthKey].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            const sortedMonths = Object.keys(monthlyData).sort();
+            const trxData = sortedMonths.map(m => monthlyData[m].trx);
+            const valueData = sortedMonths.map(m => monthlyData[m].value / 1000000000);
+
+            if (charts.trendChart) charts.trendChart.destroy();
+
+            charts.trendChart = new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [
+                        {
+                            label: 'Total Transaksi',
+                            data: trxData,
+                            borderColor: chartColors[0],
+                            backgroundColor: chartColors[0] + '20',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Nilai BSU RB (Miliar Rp)',
+                            data: valueData,
+                            borderColor: chartColors[1],
+                            backgroundColor: chartColors[1] + '20',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            title: { display: true, text: 'Total Transaksi' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            title: { display: true, text: 'Nilai (Miliar Rp)' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateKCChart() {
+            const kcData = {};
+
+            filteredData.forEach(row => {
+                const kc = (row['KC '] || '').trim();
+                if (!kc) return;
+
+                if (!kcData[kc]) {
+                    kcData[kc] = { trx: 0, value: 0 };
+                }
+                kcData[kc].trx += parseInt(row.total_trx || 0);
+                kcData[kc].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            const sorted = Object.entries(kcData)
+                .sort((a, b) => b[1].trx - a[1].trx)
+                .slice(0, 10);
+
+            const labels = sorted.map(s => s[0]);
+            const values = sorted.map(s => s[1].trx);
+
+            if (charts.kcChart) charts.kcChart.destroy();
+
+            charts.kcChart = new Chart(document.getElementById('kcChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Transaksi',
+                        data: values,
+                        backgroundColor: chartColors,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function updateTouchpointChart() {
+            const touchpointData = {};
+
+            filteredData.forEach(row => {
+                const tp = row['Touch Point'] || 'Unknown';
+                if (!touchpointData[tp]) {
+                    touchpointData[tp] = { trx: 0, value: 0 };
+                }
+                touchpointData[tp].trx += parseInt(row.total_trx || 0);
+                touchpointData[tp].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            const labels = Object.keys(touchpointData);
+            const values = labels.map(l => touchpointData[l].trx);
+
+            if (charts.touchpointChart) charts.touchpointChart.destroy();
+
+            charts.touchpointChart = new Chart(document.getElementById('touchpointChart'), {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: chartColors.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        function updateTable() {
+            const kcpData = {};
+
+            filteredData.forEach(row => {
+                const kcp = row.kcp || 'Unknown';
+                const kc = (row['KC '] || '').trim();
+
+                if (!kcpData[kcp]) {
+                    kcpData[kcp] = { kc: kc, trx: 0, value: 0 };
+                }
+                kcpData[kcp].trx += parseInt(row.total_trx || 0);
+                kcpData[kcp].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            const sorted = Object.entries(kcpData)
+                .map(([kcp, data]) => ({ kcp, ...data }))
+                .sort((a, b) => b.trx - a.trx)
+                .slice(0, 10);
+
+            const tbody = document.getElementById('kcpTableBody');
+            tbody.innerHTML = '';
+
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Tidak ada data untuk ditampilkan</td></tr>';
+                return;
+            }
+
+            sorted.forEach((item, index) => {
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.kcp}</td>
+                        <td>${item.kc}</td>
+                        <td>${item.trx.toLocaleString('id-ID')}</td>
+                        <td>Rp ${(item.value / 1000000).toFixed(2)} Juta</td>
+                        <td>Rp ${Math.round(item.value / item.trx).toLocaleString('id-ID')}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+    </script>
+</body>
+</html>
