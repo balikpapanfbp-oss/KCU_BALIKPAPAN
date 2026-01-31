@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard KCU Balikpapan - Persistent Data</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* Login Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-login:hover {
+            background: #5568d3;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .upload-section.locked {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .upload-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-badge {
+            background: #4caf50;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+
+        .login-required {
+            background: #ff9800;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+
+        .login-required:hover {
+            background: #f57c00;
+        }
+
+        .data-status-box {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .data-status-box.no-data {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+
+        .data-status-box h3 {
+            color: #2e7d32;
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+
+        .data-status-box.no-data h3 {
+            color: #e65100;
+        }
+
+        .data-status-box p {
+            color: #1b5e20;
+            font-size: 0.95em;
+            margin: 5px 0;
+        }
+
+        .data-status-box.no-data p {
+            color: #bf360c;
+        }
+
+        .btn-clear-data {
+            background: #f44336;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .btn-clear-data:hover {
+            background: #d32f2f;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #5568d3;
+        }
+
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #4facfe;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .upload-btn:hover {
+            background: #5568d3;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .filter-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .filter-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .filter-info h3 {
+            color: #1976d2;
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+
+        .filter-info p {
+            color: #0d47a1;
+            font-size: 0.95em;
+            margin: 0;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* KC Multi-Select */
+        .kc-multiselect {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .kc-multiselect:focus-within {
+            border-color: #667eea;
+        }
+
+        .kc-option {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .kc-option:hover {
+            background: #f5f5f5;
+        }
+
+        .kc-option input[type="checkbox"] {
+            margin-right: 10px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .kc-option label {
+            cursor: pointer;
+            margin: 0;
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .selected-kc-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #2e7d32;
+        }
+
+        .kc-select-all {
+            padding: 8px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* YoY Comparison Section */
+        .yoy-comparison-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .yoy-comparison-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            text-align: center;
+        }
+
+        .period-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .period-info h3 {
+            color: #333;
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+
+        .period-dates {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .period-item {
+            text-align: center;
+        }
+
+        .period-year {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .period-range {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.05em;
+        }
+
+        /* Comparison Grid */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .comparison-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .comparison-card h3 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .comparison-values {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 15px 0;
+        }
+
+        .year-value {
+            text-align: center;
+        }
+
+        .year-label {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .year-amount {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .comparison-arrow {
+            font-size: 2em;
+        }
+
+        .growth-indicator {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .growth-indicator.positive {
+            color: #4caf50;
+        }
+
+        .growth-indicator.negative {
+            color: #f44336;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        /* Chart Grid */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .chart-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            text-align: center;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        .table-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .growth-cell {
+            font-weight: bold;
+        }
+
+        .growth-cell.positive {
+            color: #4caf50;
+        }
+
+        .growth-cell.negative {
+            color: #f44336;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            padding: 20px 0;
+            margin-top: 30px;
+            opacity: 0.8;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>🔐 Login Admin</h2>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="adminPassword" placeholder="Masukkan password admin">
+            </div>
+            <button class="btn-login" onclick="checkLogin()">Login</button>
+            <p style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9em;">
+                Password default: <code>admin123</code><br>
+                <small>(Ganti di source code)</small>
+            </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Dashboard KCU Balikpapan - Persistent Data</h1>
+            <p>Data Tersimpan Otomatis - Tidak Perlu Upload Berulang</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section" id="uploadSection">
+            <h2>
+                📤 Upload Data Master
+                <span id="loginBadge" class="login-required" onclick="showLoginModal()">🔒 Login untuk Upload</span>
+            </h2>
+
+            <!-- Data Status -->
+            <div id="dataStatusBox" class="data-status-box no-data">
+                <h3>📁 Status Data Master</h3>
+                <p><strong>Status:</strong> <span id="dataStatus">Belum ada data tersimpan</span></p>
+                <p><strong>Total Baris:</strong> <span id="storedRows">0</span> data</p>
+                <p><strong>Terakhir Update:</strong> <span id="lastUpdate">-</span></p>
+                <button class="btn-clear-data" onclick="clearStoredData()" style="display: none;" id="btnClearData">🗑️ Hapus Data Master</button>
+            </div>
+
+            <div id="alertBox" class="alert"></div>
+            <div class="upload-area" id="uploadArea" onclick="handleUploadClick()">
+                <div class="upload-icon">📁</div>
+                <h3>Klik atau Drag & Drop file CSV di sini</h3>
+                <p style="color: #666; margin-top: 10px;">Format: CSV dengan kolom KCU, KC, kcp, BSU RB, Channel, Touch Point, total_trx, Tanggal</p>
+                <p style="color: #667eea; margin-top: 10px; font-weight: 600;">✨ Data akan tersimpan otomatis dan tetap ada saat dibuka kembali</p>
+                <input type="file" id="fileInput" class="file-input" accept=".csv">
+                <button class="upload-btn" onclick="event.stopPropagation(); handleUploadClick()">Pilih File</button>
+            </div>
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">Memproses dan menyimpan data...</p>
+            </div>
+            <div id="fileInfo" class="file-info">
+                <strong>File dipilih:</strong> <span id="fileName"></span><br>
+                <strong>Ukuran:</strong> <span id="fileSize"></span><br>
+                <strong>Total Data:</strong> <span id="totalRows"></span> baris<br>
+                <strong>Status:</strong> <span id="parseStatus" style="color: green;">✓ Berhasil dimuat dan tersimpan</span>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h2>🔍 Filter & Perbandingan Multi KC</h2>
+
+            <div class="filter-info">
+                <h3>💡 Fitur Multi-Select KC + Persistent Data</h3>
+                <p>Data tersimpan otomatis di browser Anda. Pilih beberapa KC untuk dibandingkan periode yang sama di tahun berbeda.</p>
+            </div>
+
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>📅 Tanggal Mulai</label>
+                    <input type="date" id="startDate" value="2026-01-01">
+                </div>
+                <div class="filter-group">
+                    <label>📅 Tanggal Akhir</label>
+                    <input type="date" id="endDate" value="2026-01-05">
+                </div>
+                <div class="filter-group" style="grid-column: span 2;">
+                    <label>🏢 Pilih Kantor Cabang (Multi-Select)</label>
+                    <div class="kc-multiselect" id="kcMultiselect">
+                        <div class="kc-select-all">
+                            <input type="checkbox" id="selectAllKC" onchange="toggleSelectAll()">
+                            <label for="selectAllKC" style="cursor: pointer;">Pilih Semua KC</label>
+                        </div>
+                        <div id="kcCheckboxList">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                    <div class="selected-kc-info" id="selectedKCInfo">
+                        Belum ada KC dipilih
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>📍 Channel</label>
+                    <select id="channelFilter">
+                        <option value="all">Semua Channel</option>
+                        <option value="Loket">Loket</option>
+                        <option value="Oranger">Oranger</option>
+                        <option value="Agen Pos">Agen Pos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>🎯 Touch Point</label>
+                    <select id="touchpointFilter">
+                        <option value="all">Semua Touch Point</option>
+                        <option value="Direct Engagement">Direct Engagement</option>
+                        <option value="Marketplace">Marketplace</option>
+                        <option value="POSAJA">POSAJA</option>
+                    </select>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="applyFilters()">🔄 Terapkan Filter & Bandingkan</button>
+                <button class="btn btn-secondary" onclick="resetFilters()">↺ Reset Filter</button>
+            </div>
+        </div>
+
+        <!-- YoY Comparison Period Info -->
+        <div class="yoy-comparison-section">
+            <h2>📊 Perbandingan Periode yang Sama</h2>
+            <div class="period-info">
+                <h3>Periode yang Dibandingkan:</h3>
+                <div class="period-dates">
+                    <div class="period-item">
+                        <div class="period-year">Tahun Lalu (2025)</div>
+                        <div class="period-range" id="period2025">-</div>
+                    </div>
+                    <div style="display: flex; align-items: center; font-size: 1.5em; color: #667eea;">⟷</div>
+                    <div class="period-item">
+                        <div class="period-year">Tahun Ini (2026)</div>
+                        <div class="period-range" id="period2026">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Comparison -->
+            <div class="comparison-grid">
+                <div class="comparison-card">
+                    <h3>Total Transaksi</h3>
+                    <div class="comparison-values">
+                        <div class="year-value">
+                            <div class="year-label">2025</div>
+                            <div class="year-amount" id="trx2025">-</div>
+                        </div>
+                        <div class="comparison-arrow">→</div>
+                        <div class="year-value">
+                            <div class="year-label">2026</div>
+                            <div class="year-amount" id="trx2026">-</div>
+                        </div>
+                    </div>
+                    <div class="growth-indicator" id="trxGrowth">Upload data untuk melihat</div>
+                </div>
+
+                <div class="comparison-card">
+                    <h3>Total Nilai BSU RB</h3>
+                    <div class="comparison-values">
+                        <div class="year-value">
+                            <div class="year-label">2025</div>
+                            <div class="year-amount" id="value2025">-</div>
+                        </div>
+                        <div class="comparison-arrow">→</div>
+                        <div class="year-value">
+                            <div class="year-label">2026</div>
+                            <div class="year-amount" id="value2026">-</div>
+                        </div>
+                    </div>
+                    <div class="growth-indicator" id="valueGrowth">Upload data untuk melihat</div>
+                </div>
+
+                <div class="comparison-card">
+                    <h3>Rata-rata per Transaksi</h3>
+                    <div class="comparison-values">
+                        <div class="year-value">
+                            <div class="year-label">2025</div>
+                            <div class="year-amount" id="avg2025">-</div>
+                        </div>
+                        <div class="comparison-arrow">→</div>
+                        <div class="year-value">
+                            <div class="year-label">2026</div>
+                            <div class="year-amount" id="avg2026">-</div>
+                        </div>
+                    </div>
+                    <div class="growth-indicator" id="avgGrowth">Upload data untuk melihat</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- YoY Comparison by KC -->
+        <div class="table-card">
+            <h2>📈 Perbandingan KC Terpilih (YoY)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align: middle;">Kantor Cabang</th>
+                        <th colspan="2" style="text-align: center; border-right: 2px solid white;">Total Transaksi</th>
+                        <th colspan="2" style="text-align: center; border-right: 2px solid white;">Total Nilai BSU RB</th>
+                        <th rowspan="2" style="vertical-align: middle;">Growth %</th>
+                    </tr>
+                    <tr>
+                        <th>2025</th>
+                        <th style="border-right: 2px solid white;">2026</th>
+                        <th>2025</th>
+                        <th style="border-right: 2px solid white;">2026</th>
+                    </tr>
+                </thead>
+                <tbody id="kcComparisonTableBody">
+                    <tr><td colspan="6" style="text-align: center; padding: 30px;">📁 Pilih KC dan terapkan filter</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h2>Perbandingan Transaksi YoY per KC</h2>
+                <div class="chart-container">
+                    <canvas id="kcComparisonChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h2>Perbandingan Nilai BSU RB YoY per KC</h2>
+                <div class="chart-container">
+                    <canvas id="kcValueComparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card" style="margin-bottom: 20px;">
+            <h2>Growth Rate per KC (%)</h2>
+            <div class="chart-container">
+                <canvas id="growthRateChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Transaksi (Periode Ini)</h3>
+                <div class="value" id="totalTrx">-</div>
+                <div class="label">Transaksi di periode 2026</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Total Nilai BSU RB</h3>
+                <div class="value" id="totalValue">-</div>
+                <div class="label">Nilai di periode 2026</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Pertumbuhan Transaksi</h3>
+                <div class="value" id="trxGrowthStat">-</div>
+                <div class="label">vs periode sama 2025</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Jumlah KC Terpilih</h3>
+                <div class="value" id="totalKC">-</div>
+                <div class="label">Kantor cabang</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Dashboard KCU Balikpapan - Persistent Data | Data tersimpan di browser Anda</p>
+        </div>
+    </div>
+
+    <script>
+        // KONFIGURASI PASSWORD - GANTI INI!
+        const ADMIN_PASSWORD = 'admin123';
+        const STORAGE_KEY = 'dashboard_kcu_data';
+        const STORAGE_METADATA_KEY = 'dashboard_kcu_metadata';
+
+        // Global variables
+        let rawData = [];
+        let filteredData2025 = [];
+        let filteredData2026 = [];
+        let charts = {};
+        let isAdmin = false;
+        let selectedKCs = new Set();
+
+        // Chart colors
+        const chartColors = {
+            year2025: '#ff9800',
+            year2026: '#667eea',
+            positive: '#4caf50',
+            negative: '#f44336'
+        };
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadStoredData();
+
+            if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+                isAdmin = true;
+                updateAdminUI();
+            }
+        });
+
+        function loadStoredData() {
+            try {
+                const storedData = localStorage.getItem(STORAGE_KEY);
+                const metadata = localStorage.getItem(STORAGE_METADATA_KEY);
+
+                if (storedData && metadata) {
+                    rawData = JSON.parse(storedData);
+                    const meta = JSON.parse(metadata);
+
+                    // Update status display
+                    updateDataStatus(true, rawData.length, meta.uploadDate);
+
+                    // Populate filters
+                    populateKCCheckboxes();
+                    applyFilters();
+
+                    showAlert('info', `✓ Data tersimpan dimuat! ${rawData.length.toLocaleString('id-ID')} data siap digunakan.`);
+                } else {
+                    updateDataStatus(false);
+                }
+            } catch (error) {
+                console.error('Error loading stored data:', error);
+                updateDataStatus(false);
+                showAlert('error', 'Gagal memuat data tersimpan. Silakan upload ulang.');
+            }
+        }
+
+        function saveDataToStorage() {
+            try {
+                const metadata = {
+                    uploadDate: new Date().toISOString(),
+                    rowCount: rawData.length
+                };
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(rawData));
+                localStorage.setItem(STORAGE_METADATA_KEY, JSON.stringify(metadata));
+
+                updateDataStatus(true, rawData.length, metadata.uploadDate);
+
+                return true;
+            } catch (error) {
+                console.error('Error saving data:', error);
+                showAlert('error', 'Gagal menyimpan data! Storage mungkin penuh. Coba hapus data lama.');
+                return false;
+            }
+        }
+
+        function updateDataStatus(hasData, rowCount = 0, uploadDate = null) {
+            const statusBox = document.getElementById('dataStatusBox');
+            const statusText = document.getElementById('dataStatus');
+            const rowsText = document.getElementById('storedRows');
+            const updateText = document.getElementById('lastUpdate');
+            const btnClear = document.getElementById('btnClearData');
+
+            if (hasData) {
+                statusBox.className = 'data-status-box';
+                statusText.textContent = '✓ Data tersimpan dan siap digunakan';
+                rowsText.textContent = rowCount.toLocaleString('id-ID');
+
+                if (uploadDate) {
+                    const date = new Date(uploadDate);
+                    updateText.textContent = date.toLocaleString('id-ID', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                    });
+                }
+
+                btnClear.style.display = isAdmin ? 'inline-block' : 'none';
+            } else {
+                statusBox.className = 'data-status-box no-data';
+                statusText.textContent = 'Belum ada data tersimpan';
+                rowsText.textContent = '0';
+                updateText.textContent = '-';
+                btnClear.style.display = 'none';
+            }
+        }
+
+        function clearStoredData() {
+            if (!isAdmin) {
+                showAlert('error', 'Hanya admin yang bisa menghapus data master!');
+                return;
+            }
+
+            if (confirm('⚠️ Yakin ingin menghapus semua data tersimpan? Data akan hilang permanen dan perlu upload ulang.')) {
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_METADATA_KEY);
+                rawData = [];
+
+                updateDataStatus(false);
+
+                // Clear UI
+                document.getElementById('kcCheckboxList').innerHTML = '';
+                document.getElementById('kcComparisonTableBody').innerHTML = 
+                    '<tr><td colspan="6" style="text-align: center; padding: 30px;">📁 Upload file CSV untuk memulai</td></tr>';
+
+                showAlert('success', '✓ Data master berhasil dihapus!');
+            }
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.add('show');
+        }
+
+        function checkLogin() {
+            const password = document.getElementById('adminPassword').value;
+
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                sessionStorage.setItem('adminLoggedIn', 'true');
+                document.getElementById('loginModal').classList.remove('show');
+                document.getElementById('adminPassword').value = '';
+                updateAdminUI();
+                showAlert('success', '✓ Login berhasil! Anda sekarang bisa upload file.');
+            } else {
+                showAlert('error', '❌ Password salah!');
+                document.getElementById('adminPassword').value = '';
+            }
+        }
+
+        function updateAdminUI() {
+            const uploadSection = document.getElementById('uploadSection');
+            const loginBadge = document.getElementById('loginBadge');
+
+            if (isAdmin) {
+                uploadSection.classList.remove('locked');
+                loginBadge.className = 'admin-badge';
+                loginBadge.textContent = '✓ Admin Mode';
+                loginBadge.onclick = null;
+
+                // Show clear button if data exists
+                if (rawData.length > 0) {
+                    document.getElementById('btnClearData').style.display = 'inline-block';
+                }
+            } else {
+                uploadSection.classList.add('locked');
+                loginBadge.className = 'login-required';
+                loginBadge.textContent = '🔒 Login untuk Upload';
+                loginBadge.onclick = showLoginModal;
+                document.getElementById('btnClearData').style.display = 'none';
+            }
+        }
+
+        function handleUploadClick() {
+            if (!isAdmin) {
+                showLoginModal();
+                return;
+            }
+            document.getElementById('fileInput').click();
+        }
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                if (isAdmin) uploadArea.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('dragover');
+            }, false);
+        });
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFileSelect, false);
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('loginModal');
+            if (event.target === modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkLogin();
+            }
+        });
+
+        function handleDrop(e) {
+            if (!isAdmin) {
+                showLoginModal();
+                return;
+            }
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            if (!isAdmin) {
+                showLoginModal();
+                return;
+            }
+            const files = e.target.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.endsWith('.csv')) {
+                    document.getElementById('loadingIndicator').classList.add('show');
+                    parseCSV(file);
+                } else {
+                    showAlert('error', 'Hanya file CSV yang diperbolehkan!');
+                }
+            }
+        }
+
+        function parseCSV(file) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showAlert('error', 'Ada error saat parsing CSV: ' + results.errors[0].message);
+                        document.getElementById('loadingIndicator').classList.remove('show');
+                        return;
+                    }
+
+                    rawData = results.data;
+
+                    if (rawData.length === 0) {
+                        showAlert('error', 'File CSV kosong!');
+                        document.getElementById('loadingIndicator').classList.remove('show');
+                        return;
+                    }
+
+                    const requiredColumns = ['KCU', 'KC ', 'kcp', 'BSU RB', 'Channel', 'Touch Point', 'total_trx', 'Tanggal'];
+                    const firstRow = rawData[0];
+                    const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+
+                    if (missingColumns.length > 0) {
+                        showAlert('error', 'Kolom tidak lengkap! Yang hilang: ' + missingColumns.join(', '));
+                        document.getElementById('loadingIndicator').classList.remove('show');
+                        return;
+                    }
+
+                    // Save to localStorage
+                    const saved = saveDataToStorage();
+
+                    document.getElementById('loadingIndicator').classList.remove('show');
+                    document.getElementById('fileName').textContent = file.name;
+                    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                    document.getElementById('totalRows').textContent = rawData.length.toLocaleString('id-ID');
+                    document.getElementById('fileInfo').classList.add('show');
+
+                    if (saved) {
+                        showAlert('success', `✓ File berhasil diupload dan tersimpan! ${rawData.length.toLocaleString('id-ID')} data akan tetap ada saat dibuka kembali.`);
+                    } else {
+                        showAlert('success', `✓ File berhasil diupload! ${rawData.length.toLocaleString('id-ID')} data dimuat (belum tersimpan).`);
+                    }
+
+                    populateKCCheckboxes();
+                    applyFilters();
+                },
+                error: function(error) {
+                    showAlert('error', 'Gagal membaca file: ' + error.message);
+                    document.getElementById('loadingIndicator').classList.remove('show');
+                }
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showAlert(type, message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert alert-${type} show`;
+            alertBox.textContent = message;
+
+            setTimeout(() => {
+                alertBox.classList.remove('show');
+            }, 5000);
+        }
+
+        function populateKCCheckboxes() {
+            const kcSet = new Set();
+            rawData.forEach(row => {
+                if (row['KC ']) kcSet.add(row['KC '].trim());
+            });
+
+            const kcList = Array.from(kcSet).sort();
+            const container = document.getElementById('kcCheckboxList');
+            container.innerHTML = '';
+
+            kcList.forEach(kc => {
+                const div = document.createElement('div');
+                div.className = 'kc-option';
+                div.innerHTML = `
+                    <input type="checkbox" id="kc_${kc}" value="${kc}" onchange="updateSelectedKCs()">
+                    <label for="kc_${kc}">${kc}</label>
+                `;
+                container.appendChild(div);
+            });
+
+            // Select first 3 by default
+            kcList.slice(0, 3).forEach(kc => {
+                const checkbox = document.getElementById(`kc_${kc}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    selectedKCs.add(kc);
+                }
+            });
+
+            updateSelectedKCsInfo();
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllKC');
+            const checkboxes = document.querySelectorAll('#kcCheckboxList input[type="checkbox"]');
+
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+
+            updateSelectedKCs();
+        }
+
+        function updateSelectedKCs() {
+            selectedKCs.clear();
+            const checkboxes = document.querySelectorAll('#kcCheckboxList input[type="checkbox"]:checked');
+            checkboxes.forEach(cb => {
+                selectedKCs.add(cb.value);
+            });
+
+            // Update select all checkbox
+            const allCheckboxes = document.querySelectorAll('#kcCheckboxList input[type="checkbox"]');
+            const selectAll = document.getElementById('selectAllKC');
+            selectAll.checked = checkboxes.length === allCheckboxes.length;
+
+            updateSelectedKCsInfo();
+        }
+
+        function updateSelectedKCsInfo() {
+            const info = document.getElementById('selectedKCInfo');
+            if (selectedKCs.size === 0) {
+                info.textContent = 'Belum ada KC dipilih';
+                info.style.background = '#fff3cd';
+                info.style.color = '#856404';
+            } else {
+                info.textContent = `✓ ${selectedKCs.size} KC terpilih: ${Array.from(selectedKCs).join(', ')}`;
+                info.style.background = '#e8f5e9';
+                info.style.color = '#2e7d32';
+            }
+        }
+
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                const month = parseInt(parts[0]);
+                const day = parseInt(parts[1]);
+                const year = parseInt(parts[2]);
+                return new Date(year, month - 1, day);
+            }
+            return new Date(dateStr);
+        }
+
+        function formatDateDisplay(date) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+        }
+
+        function applyFilters() {
+            if (rawData.length === 0) {
+                showAlert('error', 'Silakan upload data terlebih dahulu!');
+                return;
+            }
+
+            if (selectedKCs.size === 0) {
+                showAlert('error', 'Silakan pilih minimal 1 KC!');
+                return;
+            }
+
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            endDate.setHours(23, 59, 59, 999);
+
+            // Hitung periode tahun lalu yang sama
+            const startDate2025 = new Date(startDate);
+            startDate2025.setFullYear(startDate.getFullYear() - 1);
+
+            const endDate2025 = new Date(endDate);
+            endDate2025.setFullYear(endDate.getFullYear() - 1);
+
+            // Update tampilan periode
+            document.getElementById('period2025').textContent = 
+                `${formatDateDisplay(startDate2025)} - ${formatDateDisplay(endDate2025)}`;
+            document.getElementById('period2026').textContent = 
+                `${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}`;
+
+            const channel = document.getElementById('channelFilter').value;
+            const touchpoint = document.getElementById('touchpointFilter').value;
+
+            // Filter data 2025
+            filteredData2025 = rawData.filter(row => {
+                const rowDate = parseDate(row.Tanggal);
+                if (!rowDate) return false;
+                if (rowDate < startDate2025 || rowDate > endDate2025) return false;
+
+                const kc = (row['KC '] || '').trim();
+                if (!selectedKCs.has(kc)) return false;
+
+                if (channel !== 'all' && row.Channel !== channel) return false;
+                if (touchpoint !== 'all' && row['Touch Point'] !== touchpoint) return false;
+                return true;
+            });
+
+            // Filter data 2026
+            filteredData2026 = rawData.filter(row => {
+                const rowDate = parseDate(row.Tanggal);
+                if (!rowDate) return false;
+                if (rowDate < startDate || rowDate > endDate) return false;
+
+                const kc = (row['KC '] || '').trim();
+                if (!selectedKCs.has(kc)) return false;
+
+                if (channel !== 'all' && row.Channel !== channel) return false;
+                if (touchpoint !== 'all' && row['Touch Point'] !== touchpoint) return false;
+                return true;
+            });
+
+            if (filteredData2025.length === 0 && filteredData2026.length === 0) {
+                showAlert('error', 'Tidak ada data yang sesuai dengan filter!');
+                return;
+            }
+
+            showAlert('success', `✓ Filter diterapkan! ${selectedKCs.size} KC | Data 2025: ${filteredData2025.length.toLocaleString('id-ID')}, Data 2026: ${filteredData2026.length.toLocaleString('id-ID')}`);
+
+            updateDashboard();
+        }
+
+        function resetFilters() {
+            document.getElementById('startDate').value = '2026-01-01';
+            document.getElementById('endDate').value = '2026-01-05';
+            document.getElementById('channelFilter').value = 'all';
+            document.getElementById('touchpointFilter').value = 'all';
+
+            // Uncheck all
+            const checkboxes = document.querySelectorAll('#kcCheckboxList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            document.getElementById('selectAllKC').checked = false;
+
+            // Select first 3 again
+            const firstThree = Array.from(checkboxes).slice(0, 3);
+            firstThree.forEach(cb => cb.checked = true);
+
+            updateSelectedKCs();
+
+            if (rawData.length > 0) {
+                applyFilters();
+            }
+        }
+
+        function updateDashboard() {
+            updateStats();
+            updateComparison();
+            updateKCComparisonTable();
+            updateCharts();
+        }
+
+        function updateStats() {
+            const totalTrx2026 = filteredData2026.reduce((sum, row) => sum + parseInt(row.total_trx || 0), 0);
+            const totalValue2026 = filteredData2026.reduce((sum, row) => sum + parseInt(row['BSU RB'] || 0), 0);
+
+            const totalTrx2025 = filteredData2025.reduce((sum, row) => sum + parseInt(row.total_trx || 0), 0);
+
+            const trxGrowth = totalTrx2025 > 0 ? ((totalTrx2026 - totalTrx2025) / totalTrx2025 * 100) : 0;
+
+            document.getElementById('totalTrx').textContent = totalTrx2026.toLocaleString('id-ID');
+            document.getElementById('totalValue').textContent = 'Rp ' + (totalValue2026 / 1000000000).toFixed(2) + ' M';
+            document.getElementById('totalKC').textContent = selectedKCs.size;
+
+            const growthElement = document.getElementById('trxGrowthStat');
+            growthElement.textContent = (trxGrowth >= 0 ? '+' : '') + trxGrowth.toFixed(1) + '%';
+            growthElement.style.color = trxGrowth >= 0 ? '#4caf50' : '#f44336';
+        }
+
+        function updateComparison() {
+            const trx2025 = filteredData2025.reduce((sum, row) => sum + parseInt(row.total_trx || 0), 0);
+            const trx2026 = filteredData2026.reduce((sum, row) => sum + parseInt(row.total_trx || 0), 0);
+            const value2025 = filteredData2025.reduce((sum, row) => sum + parseInt(row['BSU RB'] || 0), 0);
+            const value2026 = filteredData2026.reduce((sum, row) => sum + parseInt(row['BSU RB'] || 0), 0);
+
+            const avg2025 = trx2025 > 0 ? value2025 / trx2025 : 0;
+            const avg2026 = trx2026 > 0 ? value2026 / trx2026 : 0;
+
+            document.getElementById('trx2025').textContent = trx2025.toLocaleString('id-ID');
+            document.getElementById('trx2026').textContent = trx2026.toLocaleString('id-ID');
+            document.getElementById('value2025').textContent = (value2025 / 1000000000).toFixed(1) + 'M';
+            document.getElementById('value2026').textContent = (value2026 / 1000000000).toFixed(1) + 'M';
+            document.getElementById('avg2025').textContent = Math.round(avg2025 / 1000).toLocaleString('id-ID') + 'K';
+            document.getElementById('avg2026').textContent = Math.round(avg2026 / 1000).toLocaleString('id-ID') + 'K';
+
+            const trxGrowth = trx2025 > 0 ? ((trx2026 - trx2025) / trx2025 * 100) : 0;
+            const valueGrowth = value2025 > 0 ? ((value2026 - value2025) / value2025 * 100) : 0;
+            const avgGrowth = avg2025 > 0 ? ((avg2026 - avg2025) / avg2025 * 100) : 0;
+
+            updateGrowthIndicator('trxGrowth', trxGrowth);
+            updateGrowthIndicator('valueGrowth', valueGrowth);
+            updateGrowthIndicator('avgGrowth', avgGrowth);
+        }
+
+        function updateGrowthIndicator(elementId, growth) {
+            const element = document.getElementById(elementId);
+            const arrow = growth >= 0 ? '↑' : '↓';
+            const className = growth >= 0 ? 'positive' : 'negative';
+            element.textContent = `${arrow} ${Math.abs(growth).toFixed(1)}%`;
+            element.className = `growth-indicator ${className}`;
+        }
+
+        function updateKCComparisonTable() {
+            // Aggregate data per KC
+            const kcData2025 = {};
+            const kcData2026 = {};
+
+            filteredData2025.forEach(row => {
+                const kc = (row['KC '] || '').trim();
+                if (!kc || !selectedKCs.has(kc)) return;
+                if (!kcData2025[kc]) {
+                    kcData2025[kc] = { trx: 0, value: 0 };
+                }
+                kcData2025[kc].trx += parseInt(row.total_trx || 0);
+                kcData2025[kc].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            filteredData2026.forEach(row => {
+                const kc = (row['KC '] || '').trim();
+                if (!kc || !selectedKCs.has(kc)) return;
+                if (!kcData2026[kc]) {
+                    kcData2026[kc] = { trx: 0, value: 0 };
+                }
+                kcData2026[kc].trx += parseInt(row.total_trx || 0);
+                kcData2026[kc].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            // Combine selected KC
+            const comparison = [];
+
+            selectedKCs.forEach(kc => {
+                const data2025 = kcData2025[kc] || { trx: 0, value: 0 };
+                const data2026 = kcData2026[kc] || { trx: 0, value: 0 };
+                const growth = data2025.trx > 0 ? ((data2026.trx - data2025.trx) / data2025.trx * 100) : 0;
+
+                comparison.push({
+                    kc: kc,
+                    trx2025: data2025.trx,
+                    trx2026: data2026.trx,
+                    value2025: data2025.value,
+                    value2026: data2026.value,
+                    growth: growth
+                });
+            });
+
+            // Sort by 2026 transaction descending
+            comparison.sort((a, b) => b.trx2026 - a.trx2026);
+
+            // Update table
+            const tbody = document.getElementById('kcComparisonTableBody');
+            tbody.innerHTML = '';
+
+            if (comparison.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Tidak ada data untuk ditampilkan</td></tr>';
+                return;
+            }
+
+            comparison.forEach(item => {
+                const growthClass = item.growth >= 0 ? 'positive' : 'negative';
+                const growthIcon = item.growth >= 0 ? '↑' : '↓';
+
+                const row = `
+                    <tr>
+                        <td><strong>${item.kc}</strong></td>
+                        <td>${item.trx2025.toLocaleString('id-ID')}</td>
+                        <td style="border-right: 2px solid #eee;"><strong>${item.trx2026.toLocaleString('id-ID')}</strong></td>
+                        <td>Rp ${(item.value2025 / 1000000).toFixed(1)} Jt</td>
+                        <td style="border-right: 2px solid #eee;"><strong>Rp ${(item.value2026 / 1000000).toFixed(1)} Jt</strong></td>
+                        <td class="growth-cell ${growthClass}">${growthIcon} ${Math.abs(item.growth).toFixed(1)}%</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function updateCharts() {
+            // Get KC comparison data for selected KCs only
+            const kcData2025 = {};
+            const kcData2026 = {};
+
+            filteredData2025.forEach(row => {
+                const kc = (row['KC '] || '').trim();
+                if (!kc || !selectedKCs.has(kc)) return;
+                if (!kcData2025[kc]) kcData2025[kc] = { trx: 0, value: 0 };
+                kcData2025[kc].trx += parseInt(row.total_trx || 0);
+                kcData2025[kc].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            filteredData2026.forEach(row => {
+                const kc = (row['KC '] || '').trim();
+                if (!kc || !selectedKCs.has(kc)) return;
+                if (!kcData2026[kc]) kcData2026[kc] = { trx: 0, value: 0 };
+                kcData2026[kc].trx += parseInt(row.total_trx || 0);
+                kcData2026[kc].value += parseInt(row['BSU RB'] || 0);
+            });
+
+            const kcLabels = Array.from(selectedKCs).sort();
+
+            const trx2025Data = kcLabels.map(kc => kcData2025[kc] ? kcData2025[kc].trx : 0);
+            const trx2026Data = kcLabels.map(kc => kcData2026[kc] ? kcData2026[kc].trx : 0);
+            const value2025Data = kcLabels.map(kc => kcData2025[kc] ? kcData2025[kc].value / 1000000000 : 0);
+            const value2026Data = kcLabels.map(kc => kcData2026[kc] ? kcData2026[kc].value / 1000000000 : 0);
+
+            const growthData = kcLabels.map(kc => {
+                const t2025 = kcData2025[kc] ? kcData2025[kc].trx : 0;
+                const t2026 = kcData2026[kc] ? kcData2026[kc].trx : 0;
+                return t2025 > 0 ? ((t2026 - t2025) / t2025 * 100) : 0;
+            });
+
+            // KC Comparison Chart (Transactions)
+            if (charts.kcComparisonChart) charts.kcComparisonChart.destroy();
+            charts.kcComparisonChart = new Chart(document.getElementById('kcComparisonChart'), {
+                type: 'bar',
+                data: {
+                    labels: kcLabels,
+                    datasets: [
+                        {
+                            label: 'Tahun 2025',
+                            data: trx2025Data,
+                            backgroundColor: chartColors.year2025,
+                            borderRadius: 8
+                        },
+                        {
+                            label: 'Tahun 2026',
+                            data: trx2026Data,
+                            backgroundColor: chartColors.year2026,
+                            borderRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // KC Value Comparison Chart
+            if (charts.kcValueComparisonChart) charts.kcValueComparisonChart.destroy();
+            charts.kcValueComparisonChart = new Chart(document.getElementById('kcValueComparisonChart'), {
+                type: 'bar',
+                data: {
+                    labels: kcLabels,
+                    datasets: [
+                        {
+                            label: 'Tahun 2025 (Miliar Rp)',
+                            data: value2025Data,
+                            backgroundColor: chartColors.year2025,
+                            borderRadius: 8
+                        },
+                        {
+                            label: 'Tahun 2026 (Miliar Rp)',
+                            data: value2026Data,
+                            backgroundColor: chartColors.year2026,
+                            borderRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + value.toFixed(1) + ' M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Growth Rate Chart
+            if (charts.growthRateChart) charts.growthRateChart.destroy();
+            charts.growthRateChart = new Chart(document.getElementById('growthRateChart'), {
+                type: 'bar',
+                data: {
+                    labels: kcLabels,
+                    datasets: [{
+                        label: 'Growth Rate (%)',
+                        data: growthData,
+                        backgroundColor: growthData.map(g => g >= 0 ? chartColors.positive : chartColors.negative),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
